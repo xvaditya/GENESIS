@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import EmotionalBlob from '../components/EmotionalBlob'
 import { askAssistant } from '../utils/api'
 
@@ -7,176 +7,181 @@ export default function Assistant({ history }) {
     {
       id: 1,
       type: 'bot',
-      text: "Hello! I'm your Genesis AI Assistant. Ask me anything about your eating behaviour, habits, or get personalized recommendations.",
-      emotion: 'happy'
-    }
+      text: "Hello! I'm your Genesis AI Assistant. Ask me anything about your eating behaviour, habits, or personalized recommendations.",
+      emotion: 'happy',
+    },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const messagesEnd = useRef(null)
 
-  const scrollToBottom = () => {
-    messagesEnd.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
   useEffect(() => {
-    scrollToBottom()
+    messagesEnd.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const handleSend = async () => {
     if (!input.trim()) return
 
-    // Add user message
     const userMessage = {
       id: Date.now(),
       type: 'user',
       text: input,
     }
-    setMessages(prev => [...prev, userMessage])
+
+    setMessages((prev) => [...prev, userMessage])
     setInput('')
     setLoading(true)
 
     try {
       const response = await askAssistant(input, {
         history: history.slice(0, 5),
-        recentMoods: history.slice(0, 3).map(h => h.mood),
+        recentMoods: history.slice(0, 3).map((entry) => entry.mood),
       })
 
-      const botMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        text: response.answer,
-        emotion: response.emotion || 'focused',
-        recommendation: response.recommendation,
-      }
-      setMessages(prev => [...prev, botMessage])
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          type: 'bot',
+          text: response.answer,
+          emotion: response.emotion || 'focused',
+          recommendation: response.recommendation,
+        },
+      ])
     } catch (err) {
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        text: "Sorry, I couldn't process that. Try asking about your recent meals or mood patterns.",
-        emotion: 'concerned',
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          type: 'bot',
+          text: "Sorry, I couldn't process that. Try asking about your recent meals or mood patterns.",
+          emotion: 'concerned',
+        },
+      ])
     } finally {
       setLoading(false)
     }
   }
 
   const suggestions = [
-    "Should I eat this snack now?",
-    "What patterns do you see in my meals?",
-    "How can I improve my evening eating?",
+    'Should I eat this snack now?',
+    'What patterns do you see in my meals?',
+    'How can I improve my evening eating?',
     "What's my most consistent habit?",
   ]
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      <div className="flex flex-col gap-2 mb-10">
-        <h1 className="text-4xl font-extrabold text-on-surface tracking-tight">
-          Genesis Assistant
+    <div className="space-y-8 pb-8">
+      <section className="space-y-3">
+        <h1 className="page-title">
+          Genesis <span className="gradient-text">Assistant</span>
         </h1>
-        <p className="text-on-surface-variant font-body max-w-2xl">
-          Ask questions about your behaviour and get AI-powered insights
+        <p className="page-subtitle">
+          Ask questions about your behaviour and get a cleaner, better structured conversational view.
         </p>
-      </div>
+      </section>
 
-      <div className="glass-card rounded-xl shadow-[0px_12px_40px_rgba(140,74,0,0.06)] overflow-hidden flex flex-col h-[600px]">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {messages.map(message => (
-            <div
-              key={message.id}
-              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} gap-3`}
-            >
-              {message.type === 'bot' && (
-                <div className="flex-shrink-0">
-                  <EmotionalBlob emotion={message.emotion || 'focused'} size="sm" animated={false} />
-                </div>
-              )}
-              
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_0.82fr] xl:items-start">
+        <article className="glass-card flex h-[42rem] flex-col overflow-hidden rounded-[2.4rem]">
+          <div className="border-b border-white/70 px-6 py-5">
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-stone-400">Conversation Stream</p>
+          </div>
+
+          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
+            {messages.map((message) => (
               <div
-                className={`max-w-xs px-4 py-3 rounded-lg ${
-                  message.type === 'user'
-                    ? 'bg-gradient-to-r from-primary to-primary-container text-on-primary'
-                    : 'bg-surface-container-low text-on-surface'
-                }`}
+                key={message.id}
+                className={`flex items-start gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm leading-relaxed">{message.text}</p>
-                {message.recommendation && (
-                  <div className="mt-2 pt-2 border-t border-current border-opacity-20">
-                    <p className="text-xs font-semibold">💡 {message.recommendation}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          
-          {loading && (
-            <div className="flex justify-start gap-3">
-              <div className="flex-shrink-0">
-                <EmotionalBlob emotion="thinking" size="sm" animated />
-              </div>
-              <div className="bg-surface-container-low text-on-surface px-4 py-3 rounded-lg">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-on-surface rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-on-surface rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                  <div className="w-2 h-2 bg-on-surface rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                {message.type === 'bot' && <EmotionalBlob emotion={message.emotion || 'focused'} size="sm" animated={false} />}
+
+                <div
+                  className={`max-w-[28rem] rounded-[1.6rem] px-4 py-4 text-sm leading-7 ${
+                    message.type === 'user'
+                      ? 'bg-gradient-to-r from-[#a75300] to-[#ff9200] text-white'
+                      : 'bg-white/80 text-[#2f2c2a]'
+                  }`}
+                >
+                  <p>{message.text}</p>
+                  {message.recommendation && (
+                    <p className="mt-3 border-t border-current/15 pt-3 text-xs font-semibold uppercase tracking-[0.12em]">
+                      Insight: {message.recommendation}
+                    </p>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
-          
-          <div ref={messagesEnd} />
-        </div>
+            ))}
 
-        {/* Suggestions (if no conversation yet) */}
-        {messages.length <= 1 && !loading && (
-          <div className="px-6 py-4 border-t border-surface-variant">
-            <p className="text-xs font-bold text-on-surface-variant uppercase mb-3">
-              Try asking:
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {suggestions.map((suggestion, i) => (
+            {loading && (
+              <div className="flex items-start gap-3">
+                <EmotionalBlob emotion="thinking" size="sm" animated />
+                <div className="rounded-[1.6rem] bg-white/80 px-4 py-4">
+                  <div className="flex gap-1.5">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-stone-500" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-stone-500" style={{ animationDelay: '0.15s' }} />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-stone-500" style={{ animationDelay: '0.3s' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEnd} />
+          </div>
+
+          <div className="border-t border-white/70 bg-white/40 px-5 py-4">
+            <form
+              onSubmit={(event) => {
+                event.preventDefault()
+                handleSend()
+              }}
+              className="flex gap-3"
+            >
+              <input
+                type="text"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Ask about your meals, moods, or habits..."
+                disabled={loading}
+                className="flex-1 rounded-full border border-white/70 bg-white/90 px-5 py-3 text-sm text-[#2f2c2a] outline-none placeholder:text-stone-400"
+              />
+              <button
+                type="submit"
+                disabled={loading || !input.trim()}
+                className="rounded-full bg-gradient-to-r from-[#a34c00] to-[#ff9000] px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
+              >
+                {loading ? '...' : 'Send'}
+              </button>
+            </form>
+          </div>
+        </article>
+
+        <div className="space-y-5">
+          <article className="glass-card rounded-[2rem] px-5 py-5">
+            <h2 className="text-[1.8rem] font-extrabold tracking-[-0.04em] text-[#2f2c2a]">Suggested Prompts</h2>
+            <div className="mt-5 space-y-3">
+              {suggestions.map((suggestion) => (
                 <button
-                  key={i}
+                  key={suggestion}
                   onClick={() => setInput(suggestion)}
-                  className="text-xs text-left p-2 rounded-lg bg-surface-container hover:bg-surface-container-high transition-colors text-on-surface"
+                  className="block w-full rounded-[1.4rem] bg-white/75 px-4 py-4 text-left text-sm font-semibold leading-6 text-stone-600 transition-all hover:bg-white"
                 >
                   {suggestion}
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          </article>
 
-        {/* Input */}
-        <div className="border-t border-surface-variant p-4 bg-surface-container-lowest">
-          <form
-            onSubmit={e => {
-              e.preventDefault()
-              handleSend()
-            }}
-            className="flex gap-3"
-          >
-            <input
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Ask about your meals, moods, or habits..."
-              className="flex-1 bg-background border-2 border-outline/20 rounded-lg px-4 py-2 text-on-surface focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              className="px-6 py-2 bg-gradient-to-r from-primary to-primary-container text-on-primary rounded-lg font-bold transition-all disabled:opacity-50 hover:shadow-lg"
-            >
-              {loading ? '...' : 'Send'}
-            </button>
-          </form>
+          <article className="glass-card rounded-[2rem] px-5 py-5">
+            <span className="page-kicker">Memory Snapshot</span>
+            <p className="mt-5 text-[2rem] font-extrabold leading-tight tracking-[-0.04em] text-[#2f2c2a]">
+              {history.length} tracked behaviour entries
+            </p>
+            <p className="mt-3 text-sm leading-7 text-stone-500">
+              The assistant uses your recent food logs and mood shifts to tailor each reply.
+            </p>
+          </article>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
